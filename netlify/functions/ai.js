@@ -1,14 +1,3 @@
-// ─────────────────────────────────────────────────────────────────
-// FILE LOCATION: netlify/functions/ai.js
-//
-// YOUR ANTHROPIC (MANDI/AI) KEY goes in Netlify Dashboard:
-//   Site Settings → Environment Variables → Add variable
-//   Name:  ANTHROPIC_API_KEY
-//   Value: 579b464db66ec23bdd00000120812bb4a7db42e4715ba6dd179c3975
-//
-// DO NOT paste the key directly in this file — keep it in env vars.
-// ─────────────────────────────────────────────────────────────────
-
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") return { statusCode: 405, body: "Method Not Allowed" };
 
