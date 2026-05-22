@@ -1,0 +1,24 @@
+{
+  "name": "agromind-3d",
+  "version": "1.0.0",
+  "description": "AgroMind 3D - AI-powered WhatsApp farming assistant with 3D visualization",
+  "private": true,
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "three": "^0.166.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.1",
+    "vite": "^5.4.1"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "start": "vite"
+  },
+  "keywords": ["agromind", "agriculture", "ai", "threejs", "react", "farming"],
+  "author": "AgroMind Team",
+  "license": "MIT"
+}
