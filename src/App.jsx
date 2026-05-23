@@ -12,7 +12,7 @@ const GORAKHPUR_LON   = 80.9462;
 const GEMINI_KEY = import.meta.env.VITE_GEMINI_KEY || "";
 async function callGemini(prompt, maxTokens) {
   maxTokens = maxTokens || 1000;
-  const url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + GEMINI_KEY;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_KEY}`;
   const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { maxOutputTokens: maxTokens, temperature: 0.7 } }) });
   const d = await res.json();
   return (d && d.candidates && d.candidates[0] && d.candidates[0].content && d.candidates[0].content.parts[0].text) || "";
