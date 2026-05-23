@@ -9,7 +9,14 @@ import * as THREE from "three";
 const OPENWEATHER_KEY = import.meta.env.VITE_OPENWEATHER_KEY || ""; // free at openweathermap.org
 const GORAKHPUR_LAT   = 26.8467;
 const GORAKHPUR_LON   = 80.9462;
-const AI_PROXY = "/.netlify/functions/ai";
+const GEMINI_KEY = import.meta.env.VITE_GEMINI_KEY || "";
+async function callGemini(prompt, maxTokens) {
+  maxTokens = maxTokens || 1000;
+  const url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + GEMINI_KEY;
+  const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { maxOutputTokens: maxTokens, temperature: 0.7 } }) });
+  const d = await res.json();
+  return (d && d.candidates && d.candidates[0] && d.candidates[0].content && d.candidates[0].content.parts[0].text) || "";
+}
 
 // ── WEATHER API ─────────────────────────────────────────────────
 async function fetchWeather() {
@@ -43,34 +50,10 @@ async function fetchWeather() {
 // ── MANDI PRICES (Agmarknet-style, via AI) ──────────────────────
 async function fetchMandiPrices() {
   try {
-    const res = await fetch(AI_PROXY, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-5",
-        max_tokens: 600,
-        system: "You are an Indian agricultural mandi price expert. Return ONLY valid JSON, no markdown, no explanation.",
-        messages: [{
-          role: "user",
-          content: `Return realistic current mandi prices for Lucknow, UP, India for today ${new Date().toLocaleDateString("en-IN")}.
-JSON format exactly:
-{
-  "prices": [
-    {"crop":"Wheat","price":2180,"unit":"₹/q","change":"+3%","trend":"up"},
-    {"crop":"Rice","price":1950,"unit":"₹/q","change":"-1%","trend":"down"},
-    {"crop":"Cotton","price":6200,"unit":"₹/q","change":"+1.5%","trend":"up"},
-    {"crop":"Sugarcane","price":350,"unit":"₹/q","change":"0%","trend":"stable"},
-    {"crop":"Potato","price":1200,"unit":"₹/q","change":"+5%","trend":"up"}
-  ],
-  "lastUpdated": "today",
-  "mandis": ["Aminabad Mandi","Lucknow APMC","Amausi Mandi"]
-}`
-        }]
-      })
-    });
-    const data = await res.json();
-    const text = data.content?.[0]?.text || "{}";
-    return JSON.parse(text);
+    const prompt = "Return current mandi prices for Lucknow UP India as JSON only, no markdown. Format: {\"prices\":[{\"crop\":\"Wheat\",\"price\":2180,\"unit\":\"₹/q\",\"change\":\"+3%\",\"trend\":\"up\"},{\"crop\":\"Rice\",\"price\":1950,\"unit\":\"₹/q\",\"change\":\"-1%\",\"trend\":\"down\"},{\"crop\":\"Cotton\",\"price\":6200,\"unit\":\"₹/q\",\"change\":\"+1.5%\",\"trend\":\"up\"},{\"crop\":\"Sugarcane\",\"price\":350,\"unit\":\"₹/q\",\"change\":\"0%\",\"trend\":\"stable\"},{\"crop\":\"Potato\",\"price\":1200,\"unit\":\"₹/q\",\"change\":\"+5%\",\"trend\":\"up\"}],\"mandis\":[\"Aminabad Mandi\",\"Lucknow APMC\",\"Amausi Mandi\"]}";
+    const text = await callGemini(prompt, 600);
+    const clean = text.replace(/```json|```/g, "").trim();
+    return JSON.parse(clean);
   } catch {
     return {
       prices: [
@@ -87,52 +70,18 @@ JSON format exactly:
 
 // ── AI CROP ADVISOR (Anthropic) ──────────────────────────────────
 async function askCropAdvisor(question, context = {}) {
-  const res = await fetch(AI_PROXY, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: "claude-sonnet-4-5",
-      max_tokens: 800,
-      system: `You are AgroMind AI, an expert agricultural advisor for Indian farmers in Lucknow, UP.
-Current context: Weather ${context.weather || "31°C, humid"}, Season: Kharif 2026.
-Reply in 2-4 short bullet points. Be practical and specific to UP farming.
-Always mention: best action, timing, and cost if relevant. Use Indian crop names.
-If disease detected, give: treatment name, dosage, spray timing.`,
-      messages: [{ role: "user", content: question }]
-    })
-  });
-  const data = await res.json();
-  return data.content?.[0]?.text || "Unable to connect to AI advisor. Please try again.";
+  try {
+    const prompt = "You are AgroMind AI, expert agricultural advisor for Indian farmers in Lucknow UP India. Context: Weather " + (context.weather || "31 degrees C, humid") + ", Season: Kharif 2026. Reply in 2-4 short bullet points. Be practical and specific to UP farming. Always mention: best action, timing, and cost. Use Indian crop names. If disease: give treatment name, dosage, spray timing. Question: " + question;
+    const text = await callGemini(prompt, 800);
+    return text || "Unable to connect to AI advisor. Please try again.";
+  } catch(e) { return "Unable to connect to AI advisor. Please try again."; }
 }
 
 // ── AI ALERTS GENERATOR ──────────────────────────────────────────
 async function fetchLiveAlerts(weatherData) {
   try {
-    const res = await fetch(AI_PROXY, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-5",
-        max_tokens: 500,
-        system: "You are an agricultural AI alert system. Return ONLY valid JSON array, no markdown.",
-        messages: [{
-          role: "user",
-          content: `Generate 5 realistic farm alerts for Lucknow UP India.
-Weather: ${weatherData?.desc || "partly cloudy"}, Temp: ${weatherData?.temp || "31°C"}, Humidity: ${weatherData?.humidity || "68%"}.
-JSON format exactly (array only):
-[
-  {"msg":"Alert message here","level":"danger","time":"2m ago","icon":"🔬"},
-  {"msg":"Alert message here","level":"warning","time":"8m ago","icon":"💧"},
-  {"msg":"Alert message here","level":"success","time":"15m ago","icon":"📈"},
-  {"msg":"Alert message here","level":"info","time":"22m ago","icon":"☁️"},
-  {"msg":"Alert message here","level":"info","time":"35m ago","icon":"📋"}
-]
-Levels: danger=red alert, warning=caution, success=good news, info=information.`
-        }]
-      })
-    });
-    const data = await res.json();
-    const text = data.content?.[0]?.text || "[]";
+    const prompt = "Generate 5 farm alerts for Lucknow UP India as JSON array only, no markdown. Format: [{\"msg\":\"alert text\",\"level\":\"danger\",\"time\":\"2m ago\",\"icon\":\"🔬\"}]. Levels: danger/warning/success/info. Weather: " + (weatherData?.temp || "31°C") + " " + (weatherData?.desc || "hazy");
+    const text = await callGemini(prompt, 500);
     const clean = text.replace(/```json|```/g, "").trim();
     return JSON.parse(clean);
   } catch {
@@ -149,45 +98,8 @@ Levels: danger=red alert, warning=caution, success=good news, info=information.`
 // ── FIELD ANALYTICS (AI-generated real-time metrics) ─────────────
 async function fetchFieldAnalytics() {
   try {
-    const res = await fetch(AI_PROXY, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-5",
-        max_tokens: 600,
-        system: "Agricultural data analyst. Return ONLY valid JSON, no markdown.",
-        messages: [{
-          role: "user",
-          content: `Generate realistic current field data for a 5-field farm in Lucknow UP India, Kharif season 2026.
-JSON exactly:
-{
-  "yieldData": [
-    {"label":"Jan","value":2.1,"unit":"t/ha","color":"#39FF14"},
-    {"label":"Feb","value":2.8,"unit":"t/ha","color":"#39FF14"},
-    {"label":"Mar","value":3.4,"unit":"t/ha","color":"#39FF14"},
-    {"label":"Apr","value":4.2,"unit":"t/ha","color":"#FACC15"},
-    {"label":"May","value":3.9,"unit":"t/ha","color":"#FACC15"},
-    {"label":"Jun","value":5.1,"unit":"t/ha","color":"#39FF14"},
-    {"label":"Jul","value":4.8,"unit":"t/ha","color":"#38BDF8"}
-  ],
-  "metrics": {
-    "avgYield":"4.2", "avgYieldDelta":"+12%",
-    "rainfall":"865", "rainfallDelta":"+8%",
-    "soilHealth":"76", "soilDelta":"-3%"
-  },
-  "fields": [
-    {"id":"F-001","name":"Wheat Field","status":"healthy","yield":"4.2t/ha","area":"3.5ac","soil":82,"moisture":71,"color":"#FACC15"},
-    {"id":"F-002","name":"Rice Paddy","status":"healthy","yield":"5.1t/ha","area":"2.1ac","soil":88,"moisture":85,"color":"#39FF14"},
-    {"id":"F-003","name":"Cotton Zone","status":"warning","yield":"2.8t/ha","area":"4.0ac","soil":55,"moisture":42,"color":"#f87171"},
-    {"id":"F-004","name":"Sugarcane","status":"healthy","yield":"68t/ha","area":"1.8ac","soil":74,"moisture":68,"color":"#8B5E3C"},
-    {"id":"F-005","name":"Veg Garden","status":"excellent","yield":"12t/ha","area":"0.8ac","soil":91,"moisture":79,"color":"#38BDF8"}
-  ]
-}`
-        }]
-      })
-    });
-    const data = await res.json();
-    const text = data.content?.[0]?.text || "{}";
+    const prompt = "Generate field analytics for a 5-field farm in Lucknow UP India Kharif 2026 as JSON only, no markdown. Include: yieldData array (monthly Jan-Jul with label/value/unit/color), metrics object (avgYield/rainfall/soilHealth with deltas), fields array (id/name/status/yield/area/soil/moisture/color for 5 fields).";
+    const text = await callGemini(prompt, 600);
     const clean = text.replace(/```json|```/g, "").trim();
     return JSON.parse(clean);
   } catch { return null; }
@@ -196,22 +108,7 @@ JSON exactly:
 // ── DAILY STATS ──────────────────────────────────────────────────
 async function fetchDailyStats() {
   try {
-    const res = await fetch(AI_PROXY, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-5",
-        max_tokens: 200,
-        system: "Return ONLY valid JSON, no markdown.",
-        messages: [{
-          role: "user",
-          content: `Simulate today's WhatsApp farming assistant stats for India. JSON exactly:
-{"messages": "1247", "alerts": "23", "queries": "418"}`
-        }]
-      })
-    });
-    const data = await res.json();
-    const text = data.content?.[0]?.text || "{}";
+    const text = await callGemini('Farming assistant stats JSON only no markdown: {"messages":"1247","alerts":"23","queries":"418"}', 100);
     const clean = text.replace(/```json|```/g, "").trim();
     return JSON.parse(clean);
   } catch {
