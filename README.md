@@ -46,7 +46,7 @@
 
 | Layer | URL | Status |
 |-------|-----|--------|
-| 🖥️ **Frontend** | [your-deployed-url.netlify.app](https://your-deployed-url.netlify.app) | ![Netlify](https://img.shields.io/website?url=https%3A%2F%2Fyour-deployed-url.netlify.app&style=flat-square&color=39FF14) |
+| 🖥️ **Frontend** | [whimsical-custard-943a95.netlify.app](https://whimsical-custard-943a95.netlify.app) | ![Live](https://img.shields.io/website?url=https%3A%2F%2Fwhimsical-custard-943a95.netlify.app&style=flat-square&color=39FF14) |
 | ⚡ **AI Function** | `/.netlify/functions/ai` | Netlify Serverless |
 | 🌤️ **Weather API** | OpenWeatherMap · Lucknow, UP | Live |
 
