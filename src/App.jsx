@@ -47,7 +47,7 @@ async function fetchMandiPrices() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
+        model: "claude-sonnet-4-5",
         max_tokens: 600,
         system: "You are an Indian agricultural mandi price expert. Return ONLY valid JSON, no markdown, no explanation.",
         messages: [{
@@ -91,7 +91,7 @@ async function askCropAdvisor(question, context = {}) {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: "claude-sonnet-4-20250514",
+      model: "claude-sonnet-4-5",
       max_tokens: 800,
       system: `You are AgroMind AI, an expert agricultural advisor for Indian farmers in Lucknow, UP.
 Current context: Weather ${context.weather || "31°C, humid"}, Season: Kharif 2026.
@@ -112,7 +112,7 @@ async function fetchLiveAlerts(weatherData) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
+        model: "claude-sonnet-4-5",
         max_tokens: 500,
         system: "You are an agricultural AI alert system. Return ONLY valid JSON array, no markdown.",
         messages: [{
@@ -153,7 +153,7 @@ async function fetchFieldAnalytics() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
+        model: "claude-sonnet-4-5",
         max_tokens: 600,
         system: "Agricultural data analyst. Return ONLY valid JSON, no markdown.",
         messages: [{
@@ -200,7 +200,7 @@ async function fetchDailyStats() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
+        model: "claude-sonnet-4-5",
         max_tokens: 200,
         system: "Return ONLY valid JSON, no markdown.",
         messages: [{
