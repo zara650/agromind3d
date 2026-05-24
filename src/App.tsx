@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback, Suspense, lazy } from "react";
 import * as THREE from "three";
+import type { WeatherData, Alert, Field, MandiPrice, ChatMessage } from './types'
 
 /* ═══════════════════════════════════════════════════════════════
    BACKEND API LAYER — Real live data via Anthropic + OpenWeather
@@ -9,14 +10,7 @@ import * as THREE from "three";
 const OPENWEATHER_KEY = import.meta.env.VITE_OPENWEATHER_KEY || ""; // free at openweathermap.org
 const GORAKHPUR_LAT   = 26.8467;
 const GORAKHPUR_LON   = 80.9462;
-const GEMINI_KEY = import.meta.env.VITE_GEMINI_KEY || "";
-async function callGemini(prompt, maxTokens) {
-  maxTokens = maxTokens || 1000;
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_KEY}`;
-  const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { maxOutputTokens: maxTokens, temperature: 0.7 } }) });
-  const d = await res.json();
-  return (d && d.candidates && d.candidates[0] && d.candidates[0].content && d.candidates[0].content.parts[0].text) || "";
-}
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 // ── WEATHER API ─────────────────────────────────────────────────
 async function fetchWeather() {
@@ -71,11 +65,18 @@ async function fetchMandiPrices() {
 // ── AI CROP ADVISOR (Anthropic) ──────────────────────────────────
 async function askCropAdvisor(question, context = {}) {
   try {
-    const prompt = "You are AgroMind AI, expert agricultural advisor for Indian farmers in Lucknow UP India. Context: Weather " + (context.weather || "31 degrees C, humid") + ", Season: Kharif 2026. Reply in 2-4 short bullet points. Be practical and specific to UP farming. Always mention: best action, timing, and cost. Use Indian crop names. If disease: give treatment name, dosage, spray timing. Question: " + question;
-    const text = await callGemini(prompt, 800);
-    return text || "Unable to connect to AI advisor. Please try again.";
-  } catch(e) { return "Unable to connect to AI advisor. Please try again."; }
+    const res = await fetch(`${API_URL}/api/advisor`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: question, weather: context.weather || "31C humid" })
+    });
+    const data = await res.json();
+    return data.response;
+  } catch(e) {
+    return "Unable to connect to AI advisor. Please try again.";
+  }
 }
+  
 
 // ── AI ALERTS GENERATOR ──────────────────────────────────────────
 async function fetchLiveAlerts(weatherData) {
@@ -2093,3 +2094,5 @@ export default function AgroMind() {
     </>
   );
 }
+
+

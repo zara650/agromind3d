@@ -9,7 +9,10 @@
     "three": "^0.166.0"
   },
   "devDependencies": {
+    "@types/react": "^19.2.15",
+    "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^4.3.1",
+    "typescript": "^6.0.3",
     "vite": "^5.4.1"
   },
   "scripts": {
@@ -18,7 +21,14 @@
     "preview": "vite preview",
     "start": "vite"
   },
-  "keywords": ["agromind", "agriculture", "ai", "threejs", "react", "farming"],
+  "keywords": [
+    "agromind",
+    "agriculture",
+    "ai",
+    "threejs",
+    "react",
+    "farming"
+  ],
   "author": "AgroMind Team",
   "license": "MIT"
 }
